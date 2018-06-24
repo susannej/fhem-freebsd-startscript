@@ -1,0 +1,64 @@
+#!/bin/sh
+#
+
+# PROVIDE: fhem
+# REQUIRE: mosquitto
+# BEFORE: LOGIN
+# KEYWORD: shutdown
+
+#
+# Add the following lines to /etc/rc.conf to enable fhem:
+#
+# fhem_enable="YES"
+#
+
+. /etc/rc.subr
+
+name=fhem
+rcvar=fhem_enable
+
+start_cmd="fhem_start"
+stop_cmd="fhem_stop"
+restart_cmd="fhem_restart"
+status_cmd="fhem_status"
+
+pidfile="/var/run/${name}.pid"
+command_interpreter="/usr/local/bin/perl"
+extra_commands="status"
+
+load_rc_config $name
+: ${fhem_enable:="no"}
+: ${fhem_args:="fhem.cfg"}
+: ${fhem_chdir:="/home/fhem/fhem"}
+
+fhem_start()
+{
+	cd ${fhem_chdir}
+	${command_interpreter} ${name}.pl ${fhem_args}
+	echo `ps ax | grep ${name}.pl | grep -v grep | awk '{ print $1 }'` > ${pidfile}
+}
+
+fhem_stop()
+{
+	kill -9 `cat ${pidfile}`
+	rm ${pidfile}
+}
+
+fhem_restart()
+{
+	fhem_stop
+	sleep 2
+	fhem_start
+}
+
+fhem_status()
+{
+	if [ -e ${pidfile} ]; then
+		pid=`cat ${pidfile}`
+		echo ${name} is running as pid `cat ${pidfile}`.
+	else
+		echo "${name} is NOT running."
+	fi
+}
+
+run_rc_command "$1"
